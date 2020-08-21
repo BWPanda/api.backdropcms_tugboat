@@ -1,0 +1,52 @@
+services:
+  php:
+    image: tugboatqa/php:7.2-apache
+    default: true
+    depends: mariadb
+    commands:
+      init:
+        # Add custom PHP settings.
+        # - cp $TUGBOAT_ROOT/.tugboat/php.ini /usr/local/etc/php/conf.d/backdrop-php.ini
+        # Install PHP 'zip' extension to allow installing Backdrop modules.
+        # - docker-php-ext-install zip
+        # Enable Apache 'rewrite' module for clean URLs.
+        - a2enmod rewrite
+        # Get the latest version of api.backdropcms.org.
+        - wget https://github.com/backdrop-ops/api.backdropcms.org/archive/main.zip -P $TUGBOAT_ROOT
+        - cd $TUGBOAT_ROOT && unzip main.zip && mv api.backdropcms.org-main/ www/
+        # Link the document root to the expected path.
+        - ln -snf $TUGBOAT_ROOT/www $DOCROOT
+      update:
+        # Use the Tugboat-specific Backdrop settings.
+        - cp $TUGBOAT_ROOT/.tugboat/settings.local.php $TUGBOAT_ROOT/www/settings.local.php
+        # Generate a unique hash_salt to secure the site.
+        - echo "\$settings['hash_salt'] = '$(openssl rand -hex 32)';" >> $TUGBOAT_ROOT/www/settings.local.php
+        # Create the config directories.
+        # - mkdir $TUGBOAT_ROOT/www/files/config
+        # - mkdir $TUGBOAT_ROOT/www/files/config/active
+        # - mkdir $TUGBOAT_ROOT/www/files/config/staging
+        # Set appropriate file permissions/ownership.
+        - chown -R www-data:www-data $TUGBOAT_ROOT/www
+        - cd $TUGBOAT_ROOT/www && find files layouts modules themes -type d -exec chmod 2775 {} \;
+        - cd $TUGBOAT_ROOT/www && find files layouts modules themes -type f -exec chmod 0664 {} \;
+        # - chmod a+x $TUGBOAT_ROOT/www/core/scripts/install.sh
+      build:
+        # Update the staging config directory.
+        - find $TUGBOAT_ROOT/config/staging -mindepth 1 -delete
+        - cp -rp $TUGBOAT_ROOT/config/live-active/* $TUGBOAT_ROOT/config/staging/
+        # Install Backdrop.
+        # - cd $TUGBOAT_ROOT/www && ./core/scripts/install.sh --db-url=mysql://tugboat:tugboat@mariadb/tugboat --account-pass=password
+        # Fix config permissions after install.
+        # - chown -R www-data:www-data $TUGBOAT_ROOT/www/files/config/active
+        # - find $TUGBOAT_ROOT/www/files/config/active -type f -exec chmod 0664 {} \;
+        # Generate and display a login URL.
+        # - cd $TUGBOAT_ROOT/www && ../.tugboat/auto-login.sh
+  mariadb:
+    image: tugboatqa/mariadb:latest
+    commands:
+      init:
+        # Configure database for UTF-8: https://api.backdropcms.org/database-configuration#utf8mb4
+        # - echo "[mysqld]\ninnodb_large_prefix=true\ninnodb_file_format=barracuda\ninnodb_file_per_table=true" >> /etc/mysql/conf.d/utf8mb.conf
+      build:
+        # Drop and re-create the database (needed when rebuilding/reinstalling).
+        # - mysqladmin -f drop tugboat && mysqladmin create tugboat
