@@ -16,9 +16,7 @@ services:
         - cd $TUGBOAT_ROOT && unzip main.zip && mv api.backdropcms.org-main/ www/
         # Link the document root to the expected path.
         - ln -snf $TUGBOAT_ROOT/www $DOCROOT
-        # Download the database and files directory.
-        - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O db.sql.gz $SANITIZE_URL_DB -P $TUGBOAT_ROOT
-        - cd $TUGBOAT_ROOT && gunzip db.sql.gz
+        # Download the files directory.
         - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O files.tar.gz $SANITIZE_URL_FILES -P $TUGBOAT_ROOT
         - cd $TUGBOAT_ROOT && tar -xzf files.tar.gz
       update:
@@ -53,10 +51,11 @@ services:
       init:
         # Configure database for UTF-8: https://api.backdropcms.org/database-configuration#utf8mb4
         # - echo "[mysqld]\ninnodb_large_prefix=true\ninnodb_file_format=barracuda\ninnodb_file_per_table=true" >> /etc/mysql/conf.d/utf8mb.conf
-        # Create the database.
-        - mysql -e "CREATE DATABASE backdrop; GRANT ALL PRIVILEGES ON backdrop.* TO 'tugboat'@'%';"
+        # Download the database and files directory.
+        - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O db.sql.gz $SANITIZE_URL_DB
+        # - gunzip db.sql.gz
       build:
         # Drop and re-create the database (needed when rebuilding/reinstalling).
         # - mysqladmin -f drop tugboat && mysqladmin create tugboat
         # Import the database.
-        - mysql -u tugboat -ptugboat backdrop < db.sql
+        - mysql -u tugboat -ptugboat tugboat < db.sql.gz
