@@ -16,6 +16,11 @@ services:
         - cd $TUGBOAT_ROOT && unzip main.zip && mv api.backdropcms.org-main/ www/
         # Link the document root to the expected path.
         - ln -snf $TUGBOAT_ROOT/www $DOCROOT
+        # Download the database and files directory.
+        - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O db.sql.gz $SANITIZE_URL_DB -P $TUGBOAT_ROOT
+        - cd $TUGBOAT_ROOT && gunzip db.sql.gz
+        - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O files.tar.gz $SANITIZE_URL_FILES -P $TUGBOAT_ROOT
+        - cd $TUGBOAT_ROOT && tar -xzf files.tar.gz
       update:
         # Use the Tugboat-specific Backdrop settings.
         - cp $TUGBOAT_ROOT/.tugboat/settings.local.php $TUGBOAT_ROOT/www/settings.local.php
@@ -34,6 +39,7 @@ services:
         # Update the staging config directory.
         - find $TUGBOAT_ROOT/config/staging -mindepth 1 -delete
         - cp -rp $TUGBOAT_ROOT/config/live-active/* $TUGBOAT_ROOT/config/staging/
+
         # Install Backdrop.
         # - cd $TUGBOAT_ROOT/www && ./core/scripts/install.sh --db-url=mysql://tugboat:tugboat@mariadb/tugboat --account-pass=password
         # Fix config permissions after install.
@@ -47,6 +53,10 @@ services:
       init:
         # Configure database for UTF-8: https://api.backdropcms.org/database-configuration#utf8mb4
         # - echo "[mysqld]\ninnodb_large_prefix=true\ninnodb_file_format=barracuda\ninnodb_file_per_table=true" >> /etc/mysql/conf.d/utf8mb.conf
+        # Create the database.
+        - mysql -e "CREATE DATABASE backdrop; GRANT ALL PRIVILEGES ON backdrop.* TO 'tugboat'@'%';"
       build:
         # Drop and re-create the database (needed when rebuilding/reinstalling).
         # - mysqladmin -f drop tugboat && mysqladmin create tugboat
+        # Import the database.
+        - mysql -u tugboat -ptugboat backdrop < db.sql

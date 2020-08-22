@@ -1,6 +1,6 @@
 <?php
 // Database.
-$database = 'mysql://tugboat:tugboat@mariadb/tugboat';
+$database = 'mysql://tugboat:tugboat@mariadb/backdrop';
 $database_charset = 'utf8mb4';
 
 // Config.
