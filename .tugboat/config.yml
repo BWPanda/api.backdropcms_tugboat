@@ -5,20 +5,15 @@ services:
     depends: mariadb
     commands:
       init:
-        # Add custom PHP settings.
-        # - cp $TUGBOAT_ROOT/.tugboat/php.ini /usr/local/etc/php/conf.d/backdrop-php.ini
-        # Install PHP 'zip' extension to allow installing Backdrop modules.
-        # - docker-php-ext-install zip
         # Enable Apache 'rewrite' module for clean URLs.
         - a2enmod rewrite
-        # Get the latest version of api.backdropcms.org.
-        # - wget https://github.com/backdrop-ops/api.backdropcms.org/archive/main.zip -P $TUGBOAT_ROOT
+        # Get the api.backdropcms.org site code.
         - cd $TUGBOAT_ROOT && git clone https://github.com/BWPanda/api.backdropcms.org.git
-        # - cd $TUGBOAT_ROOT && unzip main.zip && mv api.backdropcms.org-main/ api.backdropcms.org/
+        # Checkout the branch with the PR to test.
         - cd $TUGBOAT_ROOT/api.backdropcms.org && git checkout issue-66-2
         # Link the document root to the expected path.
         - ln -snf $TUGBOAT_ROOT/api.backdropcms.org/www $DOCROOT
-        # Download the files directory.
+        # Download and setup the files directory.
         - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O files.tar.gz $SANITIZE_URL_FILES -P $TUGBOAT_ROOT
         - cd $TUGBOAT_ROOT && tar -xzf files.tar.gz && mv files/ api.backdropcms.org/www/files/
       update:
@@ -26,40 +21,23 @@ services:
         - cp $TUGBOAT_ROOT/.tugboat/settings.local.php $TUGBOAT_ROOT/api.backdropcms.org/www/settings.local.php
         # Generate a unique hash_salt to secure the site.
         - echo "\$settings['hash_salt'] = '$(openssl rand -hex 32)';" >> $TUGBOAT_ROOT/api.backdropcms.org/www/settings.local.php
-        # Create the config directories.
-        # - mkdir $TUGBOAT_ROOT/www/files/config
-        # - mkdir $TUGBOAT_ROOT/www/files/config/active
-        # - mkdir $TUGBOAT_ROOT/www/files/config/staging
         # Set appropriate file permissions/ownership.
         - chown -R www-data:www-data $TUGBOAT_ROOT/api.backdropcms.org/www
         - chown -R www-data:www-data $TUGBOAT_ROOT/api.backdropcms.org/config
         - cd $TUGBOAT_ROOT/api.backdropcms.org/www && find files layouts modules themes -type d -exec chmod 2775 {} \;
         - cd $TUGBOAT_ROOT/api.backdropcms.org/www && find files layouts modules themes -type f -exec chmod 0664 {} \;
-        # - chmod a+x $TUGBOAT_ROOT/www/core/scripts/install.sh
       build:
-        # Update config from live-active, then staging.
+        # Update config from live-active.
         - find $TUGBOAT_ROOT/api.backdropcms.org/config/dev-active -mindepth 1 -delete
         - cp -rp $TUGBOAT_ROOT/api.backdropcms.org/config/live-active/* $TUGBOAT_ROOT/api.backdropcms.org/config/dev-active/
-        # - cp -rpf $TUGBOAT_ROOT/api.backdropcms.org/config/staging/* $TUGBOAT_ROOT/api.backdropcms.org/config/dev-active/
-        # Install Backdrop.
-        # - cd $TUGBOAT_ROOT/www && ./core/scripts/install.sh --db-url=mysql://tugboat:tugboat@mariadb/tugboat --account-pass=password
-        # Fix config permissions after install.
-        # - chown -R www-data:www-data $TUGBOAT_ROOT/www/files/config/active
-        # - find $TUGBOAT_ROOT/www/files/config/active -type f -exec chmod 0664 {} \;
-        # Generate and display a login URL.
-        # - cd $TUGBOAT_ROOT/www && ../.tugboat/auto-login.sh
   mariadb:
     image: tugboatqa/mariadb:latest
     commands:
       init:
-        # Configure database for UTF-8: https://api.backdropcms.org/database-configuration#utf8mb4
-        # - echo "[mysqld]\ninnodb_large_prefix=true\ninnodb_file_format=barracuda\ninnodb_file_per_table=true" >> /etc/mysql/conf.d/utf8mb.conf
-        # Download the database and files directory.
+        # Download the database.
         - wget --http-user=$SANITIZE_USER --http-password=$SANITIZE_PASS -O db.sql.gz $SANITIZE_URL_DB -P $TUGBOAT_ROOT
         - cd $TUGBOAT_ROOT && gunzip db.sql.gz
       build:
-        # Drop and re-create the database (needed when rebuilding/reinstalling).
-        # - mysqladmin -f drop tugboat && mysqladmin create tugboat
         # Import the database.
         - mysql -u tugboat -ptugboat tugboat < $TUGBOAT_ROOT/db.sql
         # Change User 1's password (to: BackdropCMS).
