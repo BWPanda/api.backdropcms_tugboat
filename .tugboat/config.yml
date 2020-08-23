@@ -61,3 +61,5 @@ services:
         # - mysqladmin -f drop tugboat && mysqladmin create tugboat
         # Import the database.
         - mysql -u tugboat -ptugboat tugboat < $TUGBOAT_ROOT/db.sql
+        # Change User 1's password (to: BackdropCMS).
+        - mysql tugboat -e "UPDATE users SET pass='$S$EaFrTogk0mjklJfC8YlxW8f9rZl.fnCk95EjLg5IlUzhhu1CP6zh' WHERE uid=1"
