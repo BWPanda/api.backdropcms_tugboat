@@ -37,7 +37,9 @@ services:
         # Update the staging config directory.
         - find $TUGBOAT_ROOT/api.backdropcms.org/config/staging -mindepth 1 -delete
         - cp -rp $TUGBOAT_ROOT/api.backdropcms.org/config/live-active/* $TUGBOAT_ROOT/api.backdropcms.org/config/staging/
-
+        # Update the dev-active config directory.
+        - find $TUGBOAT_ROOT/api.backdropcms.org/config/dev-active -mindepth 1 -delete
+        - cp -rp $TUGBOAT_ROOT/api.backdropcms.org/config/staging/* $TUGBOAT_ROOT/api.backdropcms.org/config/dev-active/
         # Install Backdrop.
         # - cd $TUGBOAT_ROOT/www && ./core/scripts/install.sh --db-url=mysql://tugboat:tugboat@mariadb/tugboat --account-pass=password
         # Fix config permissions after install.
