@@ -32,6 +32,7 @@ services:
         # - mkdir $TUGBOAT_ROOT/www/files/config/staging
         # Set appropriate file permissions/ownership.
         - chown -R www-data:www-data $TUGBOAT_ROOT/api.backdropcms.org/www
+        - chown -R www-data:www-data $TUGBOAT_ROOT/api.backdropcms.org/config
         - cd $TUGBOAT_ROOT/api.backdropcms.org/www && find files layouts modules themes -type d -exec chmod 2775 {} \;
         - cd $TUGBOAT_ROOT/api.backdropcms.org/www && find files layouts modules themes -type f -exec chmod 0664 {} \;
         # - chmod a+x $TUGBOAT_ROOT/www/core/scripts/install.sh
